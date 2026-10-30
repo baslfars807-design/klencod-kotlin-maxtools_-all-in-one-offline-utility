@@ -34,6 +34,64 @@ jobs:
           packages: 'platforms;android-34 build-tools;34.0.0'
           accept-android-sdk-licenses: true
 
+      # ✅ جديد: إنشاء debug.keystore تلقائياً
+      - name: Generate debug keystore
+        shell: bash
+        run: |
+          if [ -f debug.keystore ]; then
+            echo "ℹ️ debug.keystore موجود مسبقاً — تخطي الإنشاء"
+          else
+            echo "🔑 إنشاء debug.keystore قياسي..."
+            keytool -genkeypair -v \
+              -keystore "$GITHUB_WORKSPACE/debug.keystore" \
+              -alias androiddebugkey \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android \
+              -dname "CN=Android Debug,O=Android,C=US"
+            echo "✅ تم إنشاء debug.keystore بنجاح"
+          fi
+
+      # ✅ جديد: فحص/تجهيز google-services.json (اختياري لكن مستحسن)
+      - name: Ensure google-services.json exists
+        shell: bash
+        run: |
+          if [ -f app/google-services.json ]; then
+            echo "✅ google-services.json موجود"
+          else
+            echo "⚠️ google-services.json غير موجود — إنشاء ملف بديل لتخطي التحذير"
+            cat > app/google-services.json <<'EOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "klencod-placeholder",
+              "storage_bucket": "klencod-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": {
+                    "package_name": "com.klencod.app"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyDUMMY00000000000000000000000000000"
+                  }
+                ],
+                "services": {
+                  "appinvite_service": {
+                    "other_platform_oauth_client": []
+                  }
+                }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+          fi
+
       - name: Build debug APK
         shell: bash
         run: |
@@ -47,7 +105,6 @@ jobs:
               :app:assembleDebug -x lint -x test 2>&1 | tee "$LOG"
           else
             echo "⚠️ gradlew غير موجود — استخدام gradle من النظام"
-            echo "ℹ️ هذا شائع في المشاريع المستوردة من الخارج"
             gradle --no-daemon --build-cache --parallel \
               :app:assembleDebug -x lint -x test 2>&1 | tee "$LOG"
           fi
@@ -59,7 +116,7 @@ jobs:
           LOG="$RUNNER_TEMP/klencod-gradle.log"
           echo "===== Klencod compiler diagnostics ====="
           if [[ -f "$LOG" ]]; then
-            grep -E 'error:|warning:|FAILED|Compilation failed|BUILD FAILED|What went wrong' "$LOG" | tail -n 120 || true
+            grep -E 'error:|warning:|FAILED|Compilation failed|BUILD FAILED|What went wrong|Caused by' "$LOG" | tail -n 150 || true
           else
             echo "Gradle output file was not created."
           fi
