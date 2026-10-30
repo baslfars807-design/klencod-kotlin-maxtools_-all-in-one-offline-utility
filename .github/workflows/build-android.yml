@@ -34,31 +34,28 @@ jobs:
           packages: 'platforms;android-34 build-tools;34.0.0'
           accept-android-sdk-licenses: true
 
-      # ✅ جديد: إنشاء debug.keystore تلقائياً
       - name: Generate debug keystore
         shell: bash
         run: |
           if [ -f debug.keystore ]; then
-            echo "ℹ️ debug.keystore موجود مسبقاً — تخطي الإنشاء"
+            echo "ℹ️ debug.keystore موجود مسبقاً"
           else
-            echo "🔑 إنشاء debug.keystore قياسي..."
             keytool -genkeypair -v \
               -keystore "$GITHUB_WORKSPACE/debug.keystore" \
               -alias androiddebugkey \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass android -keypass android \
               -dname "CN=Android Debug,O=Android,C=US"
-            echo "✅ تم إنشاء debug.keystore بنجاح"
+            echo "✅ تم إنشاء debug.keystore"
           fi
 
-      # ✅ جديد: فحص/تجهيز google-services.json (اختياري لكن مستحسن)
       - name: Ensure google-services.json exists
         shell: bash
         run: |
           if [ -f app/google-services.json ]; then
             echo "✅ google-services.json موجود"
           else
-            echo "⚠️ google-services.json غير موجود — إنشاء ملف بديل لتخطي التحذير"
+            echo "⚠️ إنشاء ملف بديل بـ package_name الصحيح"
             cat > app/google-services.json <<'EOF'
           {
             "project_info": {
@@ -71,7 +68,7 @@ jobs:
                 "client_info": {
                   "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
                   "android_client_info": {
-                    "package_name": "com.klencod.app"
+                    "package_name": "com.aistudio.maxtools.wzyr"
                   }
                 },
                 "oauth_client": [],
